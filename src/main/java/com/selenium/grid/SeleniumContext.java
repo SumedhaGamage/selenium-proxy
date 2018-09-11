@@ -9,6 +9,7 @@ import net.lightbody.bmp.filters.RequestFilter;
 import net.lightbody.bmp.mitm.CertificateAndKeySource;
 import net.lightbody.bmp.mitm.KeyStoreFileCertificateSource;
 import net.lightbody.bmp.mitm.manager.ImpersonatingMitmManager;
+import net.lightbody.bmp.proxy.CaptureType;
 import net.lightbody.bmp.proxy.auth.AuthType;
 import net.lightbody.bmp.util.HttpMessageContents;
 import net.lightbody.bmp.util.HttpMessageInfo;
@@ -85,9 +86,6 @@ public class SeleniumContext implements AutoCloseable{
         //proxy.setTrustAllServers(true);
 
 
-        //Start BrowserMob Proxy
-        proxy.start(0);
-
         final String user = "dummyUser";
         String userPassword = "dummyPassword";
 
@@ -111,6 +109,14 @@ public class SeleniumContext implements AutoCloseable{
                 .build();
 
         proxy.setMitmManager(mitmManager);
+
+        //Start BrowserMob Proxy
+        proxy.start(0);
+
+        proxy.enableHarCaptureTypes(CaptureType.REQUEST_CONTENT,
+                CaptureType.RESPONSE_CONTENT);
+        proxy.newHar();
+
         final String basicAuth = "Basic " + base64Encode(user + ":" + userPassword);
 
 
@@ -119,8 +125,12 @@ public class SeleniumContext implements AutoCloseable{
         proxy.addRequestFilter(new RequestFilter() {
             @Override
             public HttpResponse filterRequest(HttpRequest httpRequest, HttpMessageContents httpMessageContents, HttpMessageInfo httpMessageInfo) {
+                // By manipulation user-agent header can be used to indicate to SSO agent
+                //to treat this request as Basic Authentication
                 httpRequest.headers().remove(HttpHeaders.USER_AGENT);
                 httpRequest.headers().add(HttpHeaders.USER_AGENT, "Automation");
+
+                //Adding Basic Authentication header to the request
                 httpRequest.headers().add(HttpHeaders.AUTHORIZATION, basicAuth);
                 return null;
             }
