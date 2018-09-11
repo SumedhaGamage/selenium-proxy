@@ -1,0 +1,19 @@
+version: "3"
+services:
+  selenium-hub:
+    image: selenium/hub
+    ports:
+      - 4444:4444
+    environment:
+      - GRID_MAX_SESSIONS=2
+  chrome:
+    image: selenium/node-chrome:3.12.0-cobalt
+    depends_on:
+      - selenium-hub
+    environment:
+      - HUB_HOST=selenium-hub
+      - HUB_PORT=4444
+      - NODE_MAX_INSTANCE=5
+      - NODE_MAX_SESSION=5
+    volumes:
+      - /dev/shm:/dev/shm
